@@ -36,4 +36,3 @@ Route::prefix('events')->middleware('jwt.verify')->group(function () {
     Route::delete('/{id}',[EventController::class, 'deleteEvent']);
     Route::get('/{id}',[EventController::class, 'getEventById']);
 });
-
