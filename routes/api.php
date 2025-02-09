@@ -28,7 +28,12 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('refresh', [AuthController::class, 'refresh']);
 });
 
-Route::prefix('event')->middleware('api')->group(function () {
+Route::prefix('events')->middleware('jwt.verify')->group(function () {
+    Route::get('/', [EventController::class, 'getEvents']);
     Route::post('/', [EventController::class, 'createEvent']);
+    Route::get('/own', [EventController::class, 'getEventsByEO']);
+    Route::put('/{id}',[EventController::class, 'updateEvent']);
+    Route::delete('/{id}',[EventController::class, 'deleteEvent']);
+    Route::get('/{id}',[EventController::class, 'getEventById']);
 });
 
