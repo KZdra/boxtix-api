@@ -61,7 +61,7 @@ class AuthController extends Controller
                 'created_at'=>now()
             ]);
             
-            return response()->json(['message' => 'Registrasi Sukses']);
+            return response()->json(['message' => 'Registrasi Sukses'],201);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal: ' . $e->getMessage() ,'s'=>$e], 500);
         }

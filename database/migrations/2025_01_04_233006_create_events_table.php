@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('banner');
+            $table->string('banner_name');
             $table->string('description');
             $table->string('location');
-            $table->timestamp('start_date')->nullable;
+            $table->timestamp('start_date')->nullable();
             $table->timestamps();
         });
     }
