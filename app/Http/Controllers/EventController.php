@@ -98,10 +98,15 @@ class EventController extends Controller
                     'e.updated_at',
                     'u.name as event_organizer'
                 )->where('e.id', '=', $id)->first();
-            if ($data->banner) {
-                $data->banner_url = url('storage/event_banners/' . $data->banner_name);
-            }
-            return $this->successResponse($data);
+                if ($data) {
+                    if ($data->banner) {
+                        $data->banner_url = url('storage/event_banners/' . $data->banner_name);
+                    }
+                    return $this->successResponse($data);
+                } else{
+                    return $this->errorResponse('Not Found',404);
+                }
+           
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
