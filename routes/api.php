@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\TicketController;
@@ -16,10 +15,6 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
 
 
 Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
@@ -45,4 +40,9 @@ Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(fun
     Route::put('/{id}', [TicketController::class, 'editTicketCategory']);
     Route::delete('/{id}', [TicketController::class, 'deleteTicketCategory']);
     Route::get('/{ticket_category_id}', [TicketController::class, 'getTicketCategoryById']);
+});
+
+
+Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
+    
 });

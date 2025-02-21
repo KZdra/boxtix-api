@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->string('ticket_code');
+            $table->string('ticket_code')->nullable();
             $table->enum('status',['on_sale','sold_out','comingsoon']);
             $table->decimal('price',15,2);
             $table->bigInteger('stock');
