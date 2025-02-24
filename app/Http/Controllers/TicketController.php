@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
 {
-    public function generateTicketNumber($event_id)
+
+    public function generateTicketPrefix($event_id)
     {
         // Ambil nama event berdasarkan event_id
         $event = DB::table('events')->where('id', $event_id)->first();
@@ -20,21 +21,9 @@ class TicketController extends Controller
         // Buat kode tiket berdasarkan nama event
         $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $event->title), 0, 3));
 
-        // Ambil nomor terakhir dari tiket dengan prefix yang sama
-        $latestTicket = DB::table('tickets')
-            ->where('ticket_code', 'like', "{$prefix}-%")
-            ->orderBy('ticket_code', 'desc')
-            ->first();
-
-        $lastNumber = 0;
-        if ($latestTicket) {
-            preg_match('/\d+$/', $latestTicket->ticket_code, $matches);
-            $lastNumber = $matches ? (int)$matches[0] : 0;
-        }
-
         // Generate kode tiket baru
-        $ticketCode = "{$prefix}-" . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-        return $ticketCode;
+        $ticketprefix = "{$prefix}-";
+        return $ticketprefix;
     }
     //Ticket Kategori Section
     public function TICKETCATEGORIES($size = 10, $page = 1, $search = '', $event_id = '')
@@ -154,7 +143,7 @@ class TicketController extends Controller
     }
     // End Ticket Kategories Section
 
-    //Ticket Section 
+    //Ticket Section
     public function TICKET($size = 10, $page = 1, $search = '', $event_id = '', $cat_id = '')
     {
         $query = DB::table('tickets as t')
@@ -171,7 +160,7 @@ class TicketController extends Controller
                 't.price',
                 't.stock',
                 't.created_at',
-                't.edited_at',
+                't.updated_at',
             );
         if (!empty($event_id)) {
             $query->where('t.event_id', '=', $event_id);
@@ -212,8 +201,8 @@ class TicketController extends Controller
                 'price' => 'required',
                 'stock' => 'required',
             ]);
-           $ticket_code= $this->generateTicketNumber((int)$request->event_id);
             // Get 3char for prefix Ticket Code
+           $ticket_code= $this->generateTicketPrefix((int)$request->event_id);
             DB::table('tickets')->insert([
                 'ticket_code' => $ticket_code,
                 'event_id' => $request->event_id,

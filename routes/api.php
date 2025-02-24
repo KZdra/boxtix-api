@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,5 +45,10 @@ Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(fun
 
 
 Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
-    
+    Route::get('/',[TicketController::class,'getTicketsByEventId']);
+    Route::post('/',[TicketController::class,'createTicket']);
+    Route::put('/{id}',[TicketController::class,'updateTicket']);
+    Route::delete('/{id}',[TicketController::class,'deleteTicket']);
 });
+
+Route::post('pay',[PaymentController::class,'reqTokenBayar'])->middleware(['jwt.verify','api']);
