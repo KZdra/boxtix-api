@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Midtrans\Snap;
 use Midtrans\Config;
+use Midtrans\Notification;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -67,8 +68,6 @@ class PaymentController extends Controller
                     't.status',
                     't.price',
                     't.stock',
-                    't.created_at',
-                    't.edited_at',
                 )->where('t.event_id', '=', $request->event_id)->where('t.category_id', '=', $request->category_id)->where('t.id', '=', $request->ticket_id)->first();
 
             $cust_id = DB::table('customers')->insertGetId([
@@ -85,7 +84,7 @@ class PaymentController extends Controller
                 'customer_id' => $cust_id,
                 'ticket_id' => $ticket_data->id,
                 'total_price' => $ticket_data->price,
-                'created_at'=> Carbon::now()
+                'created_at' => Carbon::now()
             ]);
             DB::commit();
             $params = [
@@ -108,7 +107,55 @@ class PaymentController extends Controller
             //dev
             return $this->errorResponse($e->getMessage(), 500);
             //prod
-            // return $this->errorResponse('Terjadi Kesalahan Server',50s0);
+            // return $this->errorResponse('Terjadi Kesalahan Server',500);
+        }
+    }
+    public function handleAfterPayment(Request $request)
+    {
+        $notif = new Notification();
+        $serverkey = config('services.midtrans.serverKey');
+        $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverkey);
+        if ($hashed == $request->signature_key) {
+            $transaction = $notif->transaction_status;
+            $type = $notif->payment_type;
+            $order_id = $notif->order_id;
+            switch ($transaction) {
+                case 'capture':
+                    // No action for capture, as per the original code
+
+                    echo "Transaction order_id: " . $order_id . " successfully transfered using " . $type;
+                    break;
+
+                case 'settlement':
+                    // TODO set payment status in merchant's database to 'Settlement'
+                    echo "Transaction order_id: " . $order_id . " successfully transfered using " . $type;
+                    break;
+
+                case 'pending':
+                    // TODO set payment status in merchant's database to 'Pending'
+                    echo "Waiting customer to finish transaction order_id: " . $order_id . " using " . $type;
+                    break;
+
+                case 'deny':
+                    // TODO set payment status in merchant's database to 'Denied'
+                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is denied.";
+                    break;
+
+                case 'expire':
+                    // TODO set payment status in merchant's database to 'expire'
+                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is expired.";
+                    break;
+
+                case 'cancel':
+                    // TODO set payment status in merchant's database to 'Denied'
+                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is canceled.";
+                    break;
+
+                default:
+                    // Optionally, handle any other cases not listed above
+                    echo "Unknown transaction status.";
+                    break;
+            }
         }
     }
 }
