@@ -74,8 +74,8 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
             $ticket_data = DB::table('tickets as t')
-            ->join('events as e', 't.event_id', '=', 'e.id')
-            ->join('ticket_categories as tc', 't.category_id', '=', 'tc.id')
+                ->join('events as e', 't.event_id', '=', 'e.id')
+                ->join('ticket_categories as tc', 't.category_id', '=', 'tc.id')
                 ->select(
                     't.id',
                     't.event_id as event_id',
@@ -110,6 +110,14 @@ class PaymentController extends Controller
                     'order_id' => $genUUID,
                     'gross_amount' => $ticket_data->price,
                 ],
+                'item_details' => [
+                    [
+                        'id' => $ticket_data->id,
+                        'price' => $ticket_data->price,
+                        'quantity' => 1,
+                        'name' => $ticket_data->event_name . '-' . $ticket_data->ticket_name,
+                    ],
+                ],
                 'customer_details' => [
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
@@ -143,7 +151,7 @@ class PaymentController extends Controller
                 DB::table('log_transactions')->insert([
                     'order_id' => $order_id,
                     'status' =>  $transaction,
-                    // 'type' => $type,
+                    'type' => $type,
                     'payload' => json_encode($request->all()),
                     'created_at' => Carbon::now(),
                 ]);
@@ -154,13 +162,13 @@ class PaymentController extends Controller
                             'order_status' => 'paid',
                             'updated_at' => Carbon::now(),
                         ]);
-                        $ordtxID= DB::table('ordered_tickets')->insertGetId([
-                        'ticket_id'=> $required_id->ticket_id,
-                        'order_id'=> $order_id,
-                        'customer_id'=> $required_id->customer_id,
-                        'ticket_number'=> $this->generateTicketNumber((int)$required_id->ticket_id),
-                        'status'=> 'not_used',
-                        'created_at'=> Carbon::now(),
+                        $ordtxID = DB::table('ordered_tickets')->insertGetId([
+                            'ticket_id' => $required_id->ticket_id,
+                            'order_id' => $order_id,
+                            'customer_id' => $required_id->customer_id,
+                            'ticket_number' => $this->generateTicketNumber((int)$required_id->ticket_id),
+                            'status' => 'not_used',
+                            'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
                             $this->decresaseStokTicket($required_id->ticket_id);
@@ -173,13 +181,13 @@ class PaymentController extends Controller
                             'order_status' => 'paid',
                             'updated_at' => Carbon::now(),
                         ]);
-                        $ordtxID= DB::table('ordered_tickets')->insertGetId([
-                        'ticket_id'=> $required_id->ticket_id,
-                        'order_id'=> $order_id,
-                        'customer_id'=> $required_id->customer_id,
-                        'ticket_number'=> $this->generateTicketNumber((int)$required_id->ticket_id),
-                        'status'=> 'not_used',
-                        'created_at'=> Carbon::now(),
+                        $ordtxID = DB::table('ordered_tickets')->insertGetId([
+                            'ticket_id' => $required_id->ticket_id,
+                            'order_id' => $order_id,
+                            'customer_id' => $required_id->customer_id,
+                            'ticket_number' => $this->generateTicketNumber((int)$required_id->ticket_id),
+                            'status' => 'not_used',
+                            'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
                             $this->decresaseStokTicket($required_id->ticket_id);
@@ -199,8 +207,8 @@ class PaymentController extends Controller
                             'order_status' => 'failed',
                             'updated_at' => Carbon::now(),
                         ]);
-                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
-                        DB::table('customers')->where('id',$cus_id)->delete();
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select('customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id', $cus_id)->delete();
                         break;
 
                     case 'expire':
@@ -208,8 +216,8 @@ class PaymentController extends Controller
                             'status' => 'expired',
                             'updated_at' => Carbon::now(),
                         ]);
-                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
-                        DB::table('customers')->where('id',$cus_id)->delete();
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select('customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id', $cus_id)->delete();
                         break;
 
                     case 'cancel':
@@ -217,8 +225,8 @@ class PaymentController extends Controller
                             'status' => 'canceled',
                             'updated_at' => Carbon::now(),
                         ]);
-                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
-                        DB::table('customers')->where('id',$cus_id)->delete();
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select('customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id', $cus_id)->delete();
                         break;
 
                     default:

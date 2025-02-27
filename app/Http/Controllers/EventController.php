@@ -106,7 +106,7 @@ class EventController extends Controller
                 } else{
                     return $this->errorResponse('Not Found',404);
                 }
-           
+
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
@@ -138,7 +138,7 @@ class EventController extends Controller
                 'banner' => $banner,
                 'description' => $request->description,
                 'location' => $request->location,
-                // 'start_date' => $request->start_date,
+                // 'start_date' => $request->start_date, // Todo
                 'start_date' =>  Carbon::now(),
                 'created_at' => Carbon::now(),
             ]);
