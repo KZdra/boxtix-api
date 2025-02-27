@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Midtrans\Snap;
 use Midtrans\Config;
 use Midtrans\Notification;
@@ -18,6 +19,21 @@ class PaymentController extends Controller
         Config::$isProduction = config('services.midtrans.isProduction');
         Config::$isSanitized = config('services.midtrans.isSanitized');
         Config::$is3ds = config('services.midtrans.is3ds');
+    }
+    public function decresaseStokTicket($tix_id)
+    {
+        // Ambil stok saat ini
+        $ticket = DB::table('tickets')->where('id', $tix_id)->first();
+
+        if ($ticket && $ticket->stock > 0) {
+            // Kurangi stok
+            DB::table('tickets')
+                ->where('id', $tix_id)
+                ->update(['stock' => $ticket->stock - 1]);
+            return true;
+        } else {
+            return false;
+        }
     }
     public function generateTicketNumber($t_id)
     {
@@ -43,7 +59,7 @@ class PaymentController extends Controller
         }
 
         // Generate kode tiket baru
-        $ticketCode = "{$prefix}" . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        $ticketCode = "{$prefix}" . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         return $ticketCode;
     }
 
@@ -58,18 +74,19 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
             $ticket_data = DB::table('tickets as t')
+            ->join('events as e', 't.event_id', '=', 'e.id')
+            ->join('ticket_categories as tc', 't.category_id', '=', 'tc.id')
                 ->select(
                     't.id',
                     't.event_id as event_id',
-                    // 'e.title as event_name',
-                    // 't.category_id as id_category',
-                    // 'tc.category_name as ticket_name ',
+                    'e.title as event_name',
+                    't.category_id as id_category',
+                    'tc.category_name as ticket_name',
                     't.ticket_code as ticket_code',
                     't.status',
                     't.price',
                     't.stock',
                 )->where('t.event_id', '=', $request->event_id)->where('t.category_id', '=', $request->category_id)->where('t.id', '=', $request->ticket_id)->first();
-
             $cust_id = DB::table('customers')->insertGetId([
                 'customer_first_name' => $request->first_name,
                 'customer_last_name' => $request->last_name,
@@ -78,9 +95,10 @@ class PaymentController extends Controller
             ]);
 
             $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . mt_rand(1000, 9999);
+            $genUUID = Str::uuid();
             DB::table('orders')->insert([
-                'id' => Str::uuid(),
-                'order_id' => $orderNumber,
+                'id' => $genUUID,
+                'order_no' => $orderNumber,
                 'customer_id' => $cust_id,
                 'ticket_id' => $ticket_data->id,
                 'total_price' => $ticket_data->price,
@@ -89,7 +107,7 @@ class PaymentController extends Controller
             DB::commit();
             $params = [
                 'transaction_details' => [
-                    'order_id' => $orderNumber,
+                    'order_id' => $genUUID,
                     'gross_amount' => $ticket_data->price,
                 ],
                 'customer_details' => [
@@ -115,46 +133,102 @@ class PaymentController extends Controller
         $notif = new Notification();
         $serverkey = config('services.midtrans.serverKey');
         $hashed = hash('sha512', $request->order_id . $request->status_code . $request->gross_amount . $serverkey);
+        Log::info($request->all());
         if ($hashed == $request->signature_key) {
             $transaction = $notif->transaction_status;
             $type = $notif->payment_type;
             $order_id = $notif->order_id;
-            switch ($transaction) {
-                case 'capture':
-                    // No action for capture, as per the original code
+            DB::beginTransaction();
+            try {
+                DB::table('log_transactions')->insert([
+                    'order_id' => $order_id,
+                    'status' =>  $transaction,
+                    // 'type' => $type,
+                    'payload' => json_encode($request->all()),
+                    'created_at' => Carbon::now(),
+                ]);
+                switch ($transaction) {
+                    case 'capture':
+                        $required_id = DB::table('orders')->where('id', $order_id)->select('ticket_id', 'customer_id', 'id as order_id')->first();
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'order_status' => 'paid',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $ordtxID= DB::table('ordered_tickets')->insertGetId([
+                        'ticket_id'=> $required_id->ticket_id,
+                        'order_id'=> $order_id,
+                        'customer_id'=> $required_id->customer_id,
+                        'ticket_number'=> $this->generateTicketNumber((int)$required_id->ticket_id),
+                        'status'=> 'not_used',
+                        'created_at'=> Carbon::now(),
+                        ]);
+                        if ($ordtxID) {
+                            $this->decresaseStokTicket($required_id->ticket_id);
+                        }
+                        break;
 
-                    echo "Transaction order_id: " . $order_id . " successfully transfered using " . $type;
-                    break;
+                    case 'settlement':
+                        $required_id = DB::table('orders')->where('id', $order_id)->select('ticket_id', 'customer_id', 'id as order_id')->first();
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'order_status' => 'paid',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $ordtxID= DB::table('ordered_tickets')->insertGetId([
+                        'ticket_id'=> $required_id->ticket_id,
+                        'order_id'=> $order_id,
+                        'customer_id'=> $required_id->customer_id,
+                        'ticket_number'=> $this->generateTicketNumber((int)$required_id->ticket_id),
+                        'status'=> 'not_used',
+                        'created_at'=> Carbon::now(),
+                        ]);
+                        if ($ordtxID) {
+                            $this->decresaseStokTicket($required_id->ticket_id);
+                        }
+                        break;
 
-                case 'settlement':
-                    // TODO set payment status in merchant's database to 'Settlement'
-                    echo "Transaction order_id: " . $order_id . " successfully transfered using " . $type;
-                    break;
+                    case 'pending':
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'order_status' => 'pending',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        echo "Waiting customer to finish transaction order_id: " . $order_id . " using " . $type;
+                        break;
 
-                case 'pending':
-                    // TODO set payment status in merchant's database to 'Pending'
-                    echo "Waiting customer to finish transaction order_id: " . $order_id . " using " . $type;
-                    break;
+                    case 'deny':
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'order_status' => 'failed',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id',$cus_id)->delete();
+                        break;
 
-                case 'deny':
-                    // TODO set payment status in merchant's database to 'Denied'
-                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is denied.";
-                    break;
+                    case 'expire':
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'status' => 'expired',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id',$cus_id)->delete();
+                        break;
 
-                case 'expire':
-                    // TODO set payment status in merchant's database to 'expire'
-                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is expired.";
-                    break;
+                    case 'cancel':
+                        DB::table('orders')->where('id', $order_id)->update([
+                            'status' => 'canceled',
+                            'updated_at' => Carbon::now(),
+                        ]);
+                        $cus_id = DB::table('orders')->where('id', $order_id)->select( 'customer_id', 'id as order_id')->first();
+                        DB::table('customers')->where('id',$cus_id)->delete();
+                        break;
 
-                case 'cancel':
-                    // TODO set payment status in merchant's database to 'Denied'
-                    echo "Payment using " . $type . " for transaction order_id: " . $order_id . " is canceled.";
-                    break;
-
-                default:
-                    // Optionally, handle any other cases not listed above
-                    echo "Unknown transaction status.";
-                    break;
+                    default:
+                        echo "Unknown transaction status.";
+                        break;
+                }
+                DB::commit();
+                return $this->successResponse([]);
+            } catch (\Exception $th) {
+                return $this->errorResponse($th->getMessage());
             }
         }
     }

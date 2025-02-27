@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
 /======================================================
 */
 
+
 Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
@@ -58,7 +59,7 @@ Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
 //====================================================================================================================>
 
 // PaymentSections
-Route::post('pay',[PaymentController::class,'reqTokenBayar'])->middleware(['jwt.verify','api']);
+Route::post('pay',[PaymentController::class,'reqTokenBayar']);
 Route::post('pay/callback',[PaymentController::class,'handleAfterPayment']);
 
 //=====================================================================================================================>

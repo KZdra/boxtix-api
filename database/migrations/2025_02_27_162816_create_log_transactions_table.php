@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('log_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('order_id')->references('id')->on('orders')->onDelete('cacsade');
-            
+            $table->uuid('order_id')->unique();
+            $table->string('status');
+            $table->string('type');
+            $table->text('payload');
             $table->timestamps();
         });
     }

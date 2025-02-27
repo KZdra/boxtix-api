@@ -75,7 +75,11 @@ class TicketController extends Controller
                     'e.id as event_id',
                     'e.title as event_name'
                 )->where('tc.id', '=', $ticket_category_id)->first();
-            return $this->successResponse($query);
+                if ($query) {
+                    return $this->successResponse($query);
+                }else {
+                    return $this->errorResponse('Not Found',404);
+                }
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
