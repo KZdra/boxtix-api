@@ -113,7 +113,7 @@ class PaymentController extends Controller
                 'item_details' => [
                     [
                         'id' => $ticket_data->id,
-                        'price' => $ticket_data->price,
+                        'price' => intval($ticket_data->price),
                         'quantity' => 1,
                         'name' => $ticket_data->event_name . '-' . $ticket_data->ticket_name,
                     ],
