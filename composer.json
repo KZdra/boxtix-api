@@ -13,6 +13,7 @@
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
         "midtrans/midtrans-php": "^2.6",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "tymon/jwt-auth": "^2.1"
     },
     "require-dev": {

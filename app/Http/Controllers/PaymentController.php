@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,8 @@ use Midtrans\Snap;
 use Midtrans\Config;
 use Midtrans\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -20,6 +23,7 @@ class PaymentController extends Controller
         Config::$isSanitized = config('services.midtrans.isSanitized');
         Config::$is3ds = config('services.midtrans.is3ds');
     }
+// Helper
     public function decresaseStokTicket($tix_id)
     {
         // Ambil stok saat ini
@@ -35,21 +39,64 @@ class PaymentController extends Controller
             return false;
         }
     }
+    public function SendTicketToCustomer($cust_id)
+    {
+
+        $apiKey = env('WA_GATEWAY_APIKEY');
+        $whatsappNumber = env('WA_GATEWAY_NUMBER');
+        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_phone')->where('id', '=', $cust_id)->first();
+        $orderedTicketData = DB::table('ordered_tickets')->select('id', 'ticket_id', 'ticket_number as ordered_number')->where('customer_id', '=', $cust_id)->first();
+        $ticketData = DB::table('tickets as t')
+            ->join('events as e', 't.event_id', '=', 'e.id')
+            ->join('ticket_categories as tc', 't.category_id', '=', 'tc.id')
+            ->select(
+                't.id',
+                't.event_id as event_id',
+                'e.title as event_name',
+                't.category_id as id_category',
+                'tc.category_name as ticket_name',
+                'e.banner as banner_path',
+                'e.start_date as date',
+                'e.location as location'
+            )
+            ->where('t.id', $orderedTicketData->ticket_id)
+            ->first();
+        $ticketFolder = "exported-ticket/{$orderedTicketData->ordered_number}/";
+        Storage::disk('public')->makeDirectory($ticketFolder);
+
+        $pdf = Pdf::loadView('tiket', compact('custData', 'orderedTicketData', 'ticketData'));
+        $pdfPath = $ticketFolder . "ticket_{$orderedTicketData->ordered_number}.pdf";
+        Storage::disk('public')->put($pdfPath, $pdf->output());
+        // SEND TO WA SECTION        
+        $messages = "Halo Kak, $custData->customer_first_name Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya..:D -BoxMin";
+
+        $response = Http::post('https://wa-ghbh.smkicb-teknika.sch.id/send-media', [
+            'api_key' => $apiKey,
+            'sender' => $whatsappNumber,
+            'number' => '62895359787002',
+            'media_type' => 'document',
+            'caption' => $messages,
+            'url' => 'https://06f5-103-81-223-98.ngrok-free.app/storage/exported-ticket/BEL-0002/ticket_BEL-0002.pdf',
+        ]);
+
+        $data = $response->successful() ? true : false;
+        // END OF SEND TO WA SECTION
+        return $data;
+    }
     public function generateTicketNumber($t_id)
     {
-        $ticket_id = DB::table('tickets')->where('id', $t_id)->first();
+        $ticket = DB::table('tickets')->where('id', $t_id)->first();
 
-        if (!$ticket_id) {
+        if (!$ticket) {
             return $this->errorResponse("Ticket not found.");
         }
 
-        // Buat kode tiket berdasarkan nama event
-        $prefix = $ticket_id->ticket_code;
+        $prefix = $ticket->ticket_code;
 
-        // Ambil nomor terakhir dari tiket dengan prefix yang sama
+        // Ambil nomor terakhir dengan sorting numerik
         $latestTicket = DB::table('ordered_tickets')
-            ->where('ticket_number', 'like', "{$prefix}-%")
-            ->orderBy('ticket_number', 'desc')
+            ->where('ticket_number', 'like', "{$prefix}%")
+            ->orderByRaw("CAST(SUBSTRING(ticket_number, LENGTH('{$prefix}') + 1, LENGTH(ticket_number)) AS UNSIGNED) DESC")
             ->first();
 
         $lastNumber = 0;
@@ -58,11 +105,11 @@ class PaymentController extends Controller
             $lastNumber = $matches ? (int)$matches[0] : 0;
         }
 
-        // Generate kode tiket baru
+        // Generate kode tiket baru dengan padding 4 digit
         $ticketCode = "{$prefix}" . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         return $ticketCode;
     }
-
+// END OF HELPER
     public function reqTokenBayar(Request $request)
     {
         $request->validate([
@@ -91,7 +138,9 @@ class PaymentController extends Controller
                 'customer_first_name' => $request->first_name,
                 'customer_last_name' => $request->last_name,
                 'customer_phone' => $request->phone,
-                'customer_email' => $request->email
+                'customer_email' => $request->email,
+                'created_at' => Carbon::now()
+
             ]);
 
             $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . mt_rand(1000, 9999);
@@ -127,6 +176,7 @@ class PaymentController extends Controller
             ];
 
             $snapToken = Snap::getSnapToken($params);
+            Log::info('test' . $snapToken);
             return $this->successResponse($snapToken);
         } catch (\Exception $e) {
             DB::rollBack();
