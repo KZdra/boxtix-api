@@ -30,7 +30,7 @@
 
         .banner {
             width: 100%;
-            height: auto;
+            height: 300px;
             border-radius: 12px;
         }
 
@@ -99,24 +99,22 @@
 
     <div class="container">
         <div class="header">
-            <img class="banner" src="{{ public_path('img.jpeg') }}" alt="Event Banner">
+            <img class="banner" src="{{ public_path('storage/'.$ticketData->banner_path) }}" alt="Event Banner">
         </div>
 
         <div class="ticket-details">
-            <h2>NOTFEST2024 </h2>
-            <p><strong>Location:</strong> TICKET123456</p>
+            <h2>{{$ticketData->event_name}} </h2>
+            <p><strong>Location:</strong> {{ $ticketData->location}}</p>
             <div class="line-break"></div>
             <table width="100%">
                 <tr>
                     <td class="left">
-                        <p><strong>Order ID:</strong> TICKET123456</p>
-                        <p><strong>Date:</strong> 31 December 2024</p>
-                        <p><strong>Name:</strong> Indra</p>
+                        <p><strong>Date:</strong> @DateIndo($ticketData->date)</p>
+                        <p><strong>Name:</strong> {{$custData->customer_first_name}}</p>
                     </td>
                     <td class="right">
-                        <p><strong>Ticket Code:</strong> TICKET123456</p>
-                        <p><strong>Time:</strong> 14:00-23:00</p>
-                        <p><strong>Ticket Category:</strong> Presale</p>
+                        <p><strong>Ticket Code:</strong> {{$orderedTicketData->ordered_number}}</p>
+                        <p><strong>Ticket Category:</strong> {{$ticketData->ticket_name}}</p>
                     </td>
                 </tr>
             </table>
@@ -124,7 +122,8 @@
 
         <div class="qr-code">
             <h3>Scan this QR Code to Access the Event</h3>
-            <img src="{{ public_path('qr.png') }}" alt="QR Code">
+            <img src="data:image/svg+xml;base64,{!! base64_encode(SimpleSoftwareIO\QrCode\Facades\QrCode::size(100)->generate($orderedTicketData->ordered_number)) !!}" alt="QR Code">
+
             <h3>Ticket 1 Dari 1</h3>
         </div>
 

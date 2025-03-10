@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('log_transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('customer_first_name');
-            $table->string('customer_last_name');
-            $table->string('customer_phone');
-            $table->string('customer_email');
+            $table->uuid('order_id')->unique();
+            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            $table->string('status');
+            $table->string('type');
+            $table->text('payload');
             $table->timestamps();
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('log_transactions');
     }
 };
