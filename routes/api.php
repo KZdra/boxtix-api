@@ -38,6 +38,7 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::put('/{id}', [EventController::class, 'updateEvent']);
     Route::delete('/{id}', [EventController::class, 'deleteEvent']);
     Route::get('/{id}', [EventController::class, 'getEventById']);
+    Route::get('/{slug}', [EventController::class, 'getEventBySlug']);
 });
 
 Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(function () {

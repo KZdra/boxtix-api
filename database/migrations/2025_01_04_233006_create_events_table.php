@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('description');
             $table->string('location');
             $table->timestamp('start_date')->nullable();
+            $table->string('slug')->nullable();
             $table->timestamps();
         });
     }
