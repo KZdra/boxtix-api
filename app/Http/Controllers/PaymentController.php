@@ -68,7 +68,7 @@ class PaymentController extends Controller
         $pdfPath = $ticketFolder . "ticket_{$orderedTicketData->ordered_number}.pdf";
         Storage::disk('public')->put($pdfPath, $pdf->output());
         // SEND TO WA SECTION        
-        $messages = "Halo Kak, $custData->customer_first_name Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya..:D -BoxMin";
+        $messages = "Halo Kak $custData->customer_first_name, Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya! :D -BoxMin";
 
         $response = Http::post('https://wa-ghbh.smkicb-teknika.sch.id/send-media', [
             'api_key' => $apiKey,
@@ -221,6 +221,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
+                            $this->SendTicketToCustomer(cust_id: $required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;
@@ -240,6 +241,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
+                            $this->SendTicketToCustomer(cust_id: $required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;
