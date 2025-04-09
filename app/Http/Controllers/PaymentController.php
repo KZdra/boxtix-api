@@ -73,7 +73,7 @@ class PaymentController extends Controller
         $response = Http::post('https://wa-ghbh.smkicb-teknika.sch.id/send-media', [
             'api_key' => $apiKey,
             'sender' => $whatsappNumber,
-            'number' => '62895359787002',
+            'number' => $custData->customer_phone,
             'media_type' => 'document',
             'caption' => $messages,
             'url' => 'https://06f5-103-81-223-98.ngrok-free.app/storage/exported-ticket/BEL-0002/ticket_BEL-0002.pdf',
