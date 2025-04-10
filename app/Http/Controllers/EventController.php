@@ -27,8 +27,6 @@ class EventController extends Controller
                 'e.description',
                 'e.start_date',
                 'e.location',
-                'e.created_at',
-                'e.updated_at',
                 'e.slug',
                 'u.name as event_organizer'
             );
@@ -97,8 +95,6 @@ class EventController extends Controller
                     'e.start_date',
                     'e.location',
                     'e.slug',
-                    'e.created_at',
-                    'e.updated_at',
                     'u.name as event_organizer'
                 )->where('e.id', '=', $id)->first();
             if ($data) {
@@ -127,8 +123,6 @@ class EventController extends Controller
                     'e.description',
                     'e.start_date',
                     'e.location',
-                    'e.created_at',
-                    'e.updated_at',
                     'u.name as event_organizer'
                 )->where('e.slug', '=', $slug)->first();
             if ($data) {

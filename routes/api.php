@@ -38,13 +38,12 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::put('/{id}', [EventController::class, 'updateEvent']);
     Route::delete('/{id}', [EventController::class, 'deleteEvent']);
     Route::get('/{id}', [EventController::class, 'getEventById']);
-    Route::get('/{slug}', [EventController::class, 'getEventBySlug']);
+  
 });
 
 Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::get('/', [TicketController::class, 'getTicketCategories']);
     Route::post('/', [TicketController::class, 'addTicketCategories']);
-    Route::get('/own', [TicketController::class, 'getTicketCategoryByEvents']);
     Route::put('/{id}', [TicketController::class, 'editTicketCategory']);
     Route::delete('/{id}', [TicketController::class, 'deleteTicketCategory']);
     Route::get('/{ticket_category_id}', [TicketController::class, 'getTicketCategoryById']);
@@ -52,16 +51,21 @@ Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(fun
 
 
 Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
-    Route::get('/',[TicketController::class,'getTicketsByEventId']);
-    Route::post('/',[TicketController::class,'createTicket']);
-    Route::put('/{id}',[TicketController::class,'updateTicket']);
-    Route::delete('/{id}',[TicketController::class,'deleteTicket']);
+    Route::get('/', [TicketController::class, 'getTicketsByEventId']);
+    Route::post('/', [TicketController::class, 'createTicket']);
+    Route::put('/{id}', [TicketController::class, 'updateTicket']);
+    Route::delete('/{id}', [TicketController::class, 'deleteTicket']);
 });
 //====================================================================================================================>
+// NO AUTH FOR LANDING PAGE
 
 // PaymentSections
-Route::post('pay',[PaymentController::class,'reqTokenBayar']);
-Route::post('pay/callback',[PaymentController::class,'handleAfterPayment']);
+Route::post('pay', [PaymentController::class, 'reqTokenBayar']);
+Route::post('pay/callback', [PaymentController::class, 'handleAfterPayment']);
+//
+Route::get('event/{slug}', [EventController::class, 'getEventBySlug']);
+Route::get('ticket/own', [TicketController::class, 'getTicketsByEventId']);
+
 
 //=====================================================================================================================>
 // Scanner Api For VAlidation ticket 

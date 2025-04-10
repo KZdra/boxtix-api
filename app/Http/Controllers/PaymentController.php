@@ -23,7 +23,7 @@ class PaymentController extends Controller
         Config::$isSanitized = config('services.midtrans.isSanitized');
         Config::$is3ds = config('services.midtrans.is3ds');
     }
-// Helper
+    // Helper
     public function decresaseStokTicket($tix_id)
     {
         // Ambil stok saat ini
@@ -76,7 +76,7 @@ class PaymentController extends Controller
             'number' => $custData->customer_phone,
             'media_type' => 'document',
             'caption' => $messages,
-            'url' => 'https://06f5-103-81-223-98.ngrok-free.app/storage/exported-ticket/BEL-0002/ticket_BEL-0002.pdf',
+            'url' => url('storage/' . $pdfPath),
         ]);
 
         $data = $response->successful() ? true : false;
@@ -109,7 +109,7 @@ class PaymentController extends Controller
         $ticketCode = "{$prefix}" . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         return $ticketCode;
     }
-// END OF HELPER
+    // END OF HELPER
     public function reqTokenBayar(Request $request)
     {
         $request->validate([
@@ -221,7 +221,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
-                            $this->SendTicketToCustomer(cust_id: $required_id->customer_id);
+                            $this->SendTicketToCustomer($required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;
@@ -241,7 +241,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
-                            $this->SendTicketToCustomer(cust_id: $required_id->customer_id);
+                            $this->SendTicketToCustomer($required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;

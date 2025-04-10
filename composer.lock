@@ -2495,16 +2495,16 @@
         },
         {
             "name": "midtrans/midtrans-php",
-            "version": "2.6.1",
+            "version": "2.6.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Midtrans/midtrans-php.git",
-                "reference": "737ddabeb0c4d40316c4db132f9ef5c8f7a1b3a6"
+                "reference": "8ed7fc58ff1ababe675da17acf8233f4028eb3be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Midtrans/midtrans-php/zipball/737ddabeb0c4d40316c4db132f9ef5c8f7a1b3a6",
-                "reference": "737ddabeb0c4d40316c4db132f9ef5c8f7a1b3a6",
+                "url": "https://api.github.com/repos/Midtrans/midtrans-php/zipball/8ed7fc58ff1ababe675da17acf8233f4028eb3be",
+                "reference": "8ed7fc58ff1ababe675da17acf8233f4028eb3be",
                 "shasum": ""
             },
             "require": {
@@ -2520,6 +2520,7 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
+                    "SnapBi\\": "SnapBi/",
                     "Midtrans\\": "Midtrans/"
                 }
             },
@@ -2539,15 +2540,19 @@
                 {
                     "name": "Ismail Faruqi",
                     "email": "ismail.faruqi@veritrans.co.id"
+                },
+                {
+                    "name": "Muhammad Fauzi Masykur",
+                    "email": "muhammad.masykur@gojek.com"
                 }
             ],
             "description": "PHP Wrapper for Midtrans Payment API.",
             "homepage": "https://midtrans.com",
             "support": {
                 "issues": "https://github.com/Midtrans/midtrans-php/issues",
-                "source": "https://github.com/Midtrans/midtrans-php/tree/v2.6.1"
+                "source": "https://github.com/Midtrans/midtrans-php/tree/v2.6.2"
             },
-            "time": "2024-10-16T08:55:12+00:00"
+            "time": "2025-03-18T06:30:17+00:00"
         },
         {
             "name": "monolog/monolog",
@@ -9051,12 +9056,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.1"
     },
-    "platform-dev": {},
+    "platform-dev": [],
     "plugin-api-version": "2.6.0"
 }

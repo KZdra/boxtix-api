@@ -26,7 +26,7 @@ class TicketController extends Controller
         return $ticketprefix;
     }
     //Ticket Kategori Section
-    public function TICKETCATEGORIES($size = 10, $page = 1, $search = '', $event_id = '')
+    public function TICKETCATEGORIES($size = 10, $page = 1, $search = '', $event_id = '', $pg = true)
     {
         $query = DB::table('ticket_categories as tc')
             ->join('events as e', 'tc.event_id', '=', 'e.id')
@@ -38,17 +38,24 @@ class TicketController extends Controller
                 'e.id as event_id',
                 'e.title as event_name'
             );
-
+    
         if (!empty($event_id)) {
             $query->where('tc.event_id', '=', $event_id);
         }
+    
         if (!empty($search)) {
             $query->where('tc.category_name', 'LIKE', "%$search%");
         }
-
-        $data = $query->orderBy('tc.created_at', 'DESC')->paginate($size, ['*'], 'page', $page);
-        return $data;
+    
+        $query->orderBy('tc.created_at', 'DESC');
+    
+        if ($pg) {
+            return $query->paginate($size, ['*'], 'page', $page);
+        } else {
+            return $query->get();
+        }
     }
+    
     public function getTicketCategories(Request $request)
     {
         try {
@@ -75,11 +82,11 @@ class TicketController extends Controller
                     'e.id as event_id',
                     'e.title as event_name'
                 )->where('tc.id', '=', $ticket_category_id)->first();
-                if ($query) {
-                    return $this->successResponse($query);
-                }else {
-                    return $this->errorResponse('Not Found',404);
-                }
+            if ($query) {
+                return $this->successResponse($query);
+            } else {
+                return $this->errorResponse('Not Found', 404);
+            }
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
@@ -148,7 +155,7 @@ class TicketController extends Controller
     // End Ticket Kategories Section
 
     //Ticket Section
-    public function TICKET($size = 10, $page = 1, $search = '', $event_id = '', $cat_id = '')
+    public function TICKET($size = 10, $page = 1, $search = '', $event_id = '', $cat_id = '',$pg=true)
     {
         $query = DB::table('tickets as t')
             ->join('events as e', 't.event_id', '=', 'e.id')
@@ -158,7 +165,7 @@ class TicketController extends Controller
                 't.event_id as event_id',
                 'e.title as event_name',
                 't.category_id as id_category',
-                'tc.category_name as ticket_name ',
+                'tc.category_name as ticket_name',
                 't.ticket_code as ticket_code',
                 't.status',
                 't.price',
@@ -176,8 +183,13 @@ class TicketController extends Controller
             $query->where('tc.category_name', 'LIKE', "%$search%")
                 ->orWhere('e.title', 'LIKE', "%$search%");
         }
+        $query->orderBy('t.created_at', 'DESC');
 
-        $data = $query->orderBy('t.created_at', 'DESC')->paginate($size, ['*'], 'page', $page);
+        if ($pg) {
+            $data = $query->paginate($size, ['*'], 'page', $page);
+        } else {
+            $data = $query->get();
+        }
         return $data;
     }
     public function getTicketsByEventId(Request $request)
@@ -188,7 +200,8 @@ class TicketController extends Controller
                 $request->page ?? 1,
                 $request->search ?? '',
                 $request->event_id ?? '',
-                $request->category_id ?? ''
+                $request->category_id ?? '',
+                false
             );
             return $this->successResponse($data);
         } catch (\Exception $e) {
@@ -206,7 +219,7 @@ class TicketController extends Controller
                 'stock' => 'required',
             ]);
             // Get 3char for prefix Ticket Code
-           $ticket_code= $this->generateTicketPrefix((int)$request->event_id);
+            $ticket_code = $this->generateTicketPrefix((int)$request->event_id);
             DB::table('tickets')->insert([
                 'ticket_code' => $ticket_code,
                 'event_id' => $request->event_id,
@@ -246,7 +259,8 @@ class TicketController extends Controller
             return $this->errorResponse($e->getMessage());
         }
     }
-    public function deleteTicket($id){
+    public function deleteTicket($id)
+    {
         try {
             DB::table('tickets')->where('id', '=', $id)->delete();
             // TODO- Delete From ORdered Tickets
