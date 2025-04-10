@@ -71,16 +71,16 @@ Route::get('ticket/own', [TicketController::class, 'getTicketsByEventId']);
 
 Route::get('sss/{cust_id}',[PaymentController::class,'sendTicketToCustomer']);
 
-Route::get('/send-eticket', function () {
-    $filePath = 'exported-ticket/EVE-0002/ticket_EVE-0002.pdf';
+// Route::get('/send-eticket', function () {
+//     $filePath = 'exported-ticket/EVE-0002/ticket_EVE-0002.pdf';
 
-    // dd($filePath);
-    $fileName = 'ticket_EVE-0002.pdf';
+//     // dd($filePath);
+//     $fileName = 'ticket_EVE-0002.pdf';
 
-    Mail::to('indrahardikap@gmail.com')->send(new SendMail('indra',$filePath,$fileName));
+    // Mail::to('indrahardikap@gmail.com')->send(new SendMail('indra',$filePath,$fileName));
 
-    return 'Email dengan e-ticket berhasil dikirim!';
-});
+//     return 'Email dengan e-ticket berhasil dikirim!';
+// });
 
 //=====================================================================================================================>
 // Scanner Api For VAlidation ticket 
