@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Midtrans\Snap;
 use Midtrans\Config;
+use App\Mail\SendMail;
 use Midtrans\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
@@ -67,21 +69,11 @@ class PaymentController extends Controller
         $pdf = Pdf::loadView('tiket', compact('custData', 'orderedTicketData', 'ticketData'));
         $pdfPath = $ticketFolder . "ticket_{$orderedTicketData->ordered_number}.pdf";
         Storage::disk('public')->put($pdfPath, $pdf->output());
+        $filename = "ticket_{$orderedTicketData->ordered_number}.pdf";
         // SEND TO WA SECTION        
         $messages = "Halo Kak $custData->customer_first_name, Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya! :D -BoxMin";
-
-        $response = Http::post('https://wa-ghbh.smkicb-teknika.sch.id/send-media', [
-            'api_key' => $apiKey,
-            'sender' => $whatsappNumber,
-            'number' => $custData->customer_phone,
-            'media_type' => 'document',
-            'caption' => $messages,
-            'url' => url('storage/' . $pdfPath),
-        ]);
-
-        $data = $response->successful() ? true : false;
-        // END OF SEND TO WA SECTION
-        return $data;
+        Mail::to('indrahardikap@gmail.com')->send(new SendMail($custData->customer_first_name, $pdfPath, $filename));
+        return true;
     }
     public function generateTicketNumber($t_id)
     {
