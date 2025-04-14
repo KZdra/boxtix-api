@@ -14,7 +14,7 @@ class EventController extends Controller
 {
     use ApiResponse;
     // Crud Heula
-    public function EVENT($size = 10, $page = 1, $search = '', $eo_id = '')
+    public function EVENT($eo_id = '')
     {
         $query = DB::table('events as e')
             ->join('users as u', 'e.organizer_id', '=', 'u.id')
@@ -33,22 +33,16 @@ class EventController extends Controller
         if (!empty($eo_id)) {
             $query->where('e.organizer_id', '=', $eo_id);
         }
-        if (!empty($search)) {
-            $query->where('e.title', 'LIKE', "%$search%");
-        }
 
-        $data = $query->orderBy('e.start_date', 'DESC')->paginate($size, ['*'], 'page', $page);
+
+        $data = $query->orderBy('e.start_date', 'DESC')->get();
         return $data;
     }
 
     public function getEvents(Request $request)
     {
         try {
-            $data = $this->EVENT(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? ''
-            );
+            $data = $this->EVENT();
             foreach ($data as $event) {
                 if ($event->banner) {
                     $event->banner_url = url('storage/event_banners/' . $event->banner_name);
@@ -64,11 +58,7 @@ class EventController extends Controller
     {
         try {
             $data = $this->EVENT(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? '',
                 Auth::id()
-
             );
             foreach ($data as $event) {
                 if ($event->banner) {
@@ -124,14 +114,14 @@ class EventController extends Controller
                     'e.start_date',
                     'e.location',
                     'u.name as event_organizer',
-                    'u.picture_profile_name'
+                    'u.profile_picture_name'
                 )->where('e.slug', '=', $slug)->first();
             if ($data) {
                 if ($data->banner) {
                     $data->banner_url = url('storage/event_banners/' . $data->banner_name);
                 }
-                if ($data->picture_profile_name) {
-                    $data->picture_profile_url = url('storage/picture_profiles/' . $data->picture_profile_name);
+                if ($data->profile_picture_name) {
+                    $data->profile_picture_url = url('storage/profile_pictures/' . $data->profile_picture_name);
                 }
                 return $this->successResponse($data);
             } else {
@@ -168,8 +158,7 @@ class EventController extends Controller
                 'banner' => $banner,
                 'description' => $request->description,
                 'location' => $request->location,
-                'start_date' => $request->start_date, // Todo
-                // 'start_date' =>  Carbon::now(),
+                'start_date' => $request->start_date,
                 'slug' => Str::slug($request->title),
                 'created_at' => Carbon::now(),
             ]);

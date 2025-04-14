@@ -55,7 +55,7 @@ class AuthController extends Controller
             return response()->json($validate->messages(), 400);
         }
         if ($request->hasFile('picture_profile')) {
-            $picture_profile = $request->file('picture_profile')->store('picture_profiles', 'public');
+            $picture_profile = $request->file('picture_profile')->store('profile_pictures', 'public');
             $file_name = basename($picture_profile);
         } else {
             $picture_profile = null;
@@ -189,7 +189,7 @@ class AuthController extends Controller
             return response()->json($validate->messages(), 400);
         }
         if ($request->hasFile('picture_profile')) {
-            $picture_profile = $request->file('picture_profile')->store('picture_profiles', 'public');
+            $picture_profile = $request->file('picture_profile')->store('profile_pictures', 'public');
             $file_name = basename($picture_profile);
         } else {
             $picture_profile = null;
@@ -218,7 +218,7 @@ class AuthController extends Controller
             }
 
             if ($request->hasFile('picture_profile')) {
-                $picture_profile = $request->file('picture_profile')->store('picture_profiles', 'public');
+                $picture_profile = $request->file('picture_profile')->store('profile_pictures', 'public');
                 $file_name = basename($picture_profile);
                 $data['profile_picture'] = $picture_profile;
                 $data['profile_picture_name'] = $file_name;

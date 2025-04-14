@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PaymentController;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-/* 
+/*
 /======================================================
 /  SEIYA SEKATA BERSAMA SAMA SEIYA SEKATA HADAPI DUNIA!
 /======================================================
@@ -36,7 +37,7 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::get('/', [EventController::class, 'getEvents']);
     Route::post('/', [EventController::class, 'createEvent']);
     Route::get('/own', [EventController::class, 'getEventsByEO']);
-    Route::put('/{id}', [EventController::class, 'updateEvent']);
+    Route::put('/{id}', [EventController::class, 'editEvent']);
     Route::delete('/{id}', [EventController::class, 'deleteEvent']);
     Route::get('/{id}', [EventController::class, 'getEventById']);
 });
@@ -56,6 +57,11 @@ Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::put('/{id}', [TicketController::class, 'updateTicket']);
     Route::delete('/{id}', [TicketController::class, 'deleteTicket']);
 });
+// Admin DashBoard
+Route::prefix('dasdata')->middleware(['jwt.verify', 'api'])->group(function () {
+    Route::get('/', [DashboardController::class, 'getStats']);
+});
+
 //====================================================================================================================>
 // NO AUTH FOR BOXTIX HOME->DetailTicket->Payment
 
@@ -69,4 +75,4 @@ Route::get('ticket/own', [TicketController::class, 'getTicketsByEventId']);
 Route::get('sss/{cust_id}', [PaymentController::class, 'sendTicketToCustomer']);
 Route::get('newest/event', [HomeController::class, 'getLatestEvent']);
 //=====================================================================================================================>
-// Scanner Api For VAlidation ticket 
+// Scanner Api For VAlidation ticket

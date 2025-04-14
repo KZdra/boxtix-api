@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
@@ -26,7 +27,7 @@ class TicketController extends Controller
         return $ticketprefix;
     }
     //Ticket Kategori Section
-    public function TICKETCATEGORIES($size = 10, $page = 1, $search = '', $event_id = '', $pg = true)
+    public function TICKETCATEGORIES($event_id = '', $u_id = '')
     {
         $query = DB::table('ticket_categories as tc')
             ->join('events as e', 'tc.event_id', '=', 'e.id')
@@ -38,31 +39,25 @@ class TicketController extends Controller
                 'e.id as event_id',
                 'e.title as event_name'
             );
-    
+
         if (!empty($event_id)) {
             $query->where('tc.event_id', '=', $event_id);
         }
-    
-        if (!empty($search)) {
-            $query->where('tc.category_name', 'LIKE', "%$search%");
+
+        if (!empty($u_id)) {
+            $query->where('e.organizer_id', '=', $u_id);  // filtering berdasarkan user pemilik event
         }
-    
         $query->orderBy('tc.created_at', 'DESC');
-    
-        if ($pg) {
-            return $query->paginate($size, ['*'], 'page', $page);
-        } else {
-            return $query->get();
-        }
+
+        return $query->get();
     }
-    
+
     public function getTicketCategories(Request $request)
     {
         try {
             $data = $this->TICKETCATEGORIES(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? ''
+                $request->event_id ?? '',
+                Auth::id()
             );
             return $this->successResponse($data);
         } catch (\Exception $e) {
@@ -95,9 +90,6 @@ class TicketController extends Controller
     {
         try {
             $data = $this->TICKETCATEGORIES(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? '',
                 $request->event_id ?? ''
             );
             return $this->successResponse($data);
@@ -155,7 +147,7 @@ class TicketController extends Controller
     // End Ticket Kategories Section
 
     //Ticket Section
-    public function TICKET($size = 10, $page = 1, $search = '', $event_id = '', $cat_id = '',$pg=true)
+    public function TICKET($event_id = '', $cat_id = '')
     {
         $query = DB::table('tickets as t')
             ->join('events as e', 't.event_id', '=', 'e.id')
@@ -164,7 +156,7 @@ class TicketController extends Controller
                 't.id',
                 't.event_id as event_id',
                 'e.title as event_name',
-                't.category_id as id_category',
+                't.category_id',
                 'tc.category_name as ticket_name',
                 't.ticket_code as ticket_code',
                 't.status',
@@ -185,23 +177,17 @@ class TicketController extends Controller
         }
         $query->orderBy('t.created_at', 'DESC');
 
-        if ($pg) {
-            $data = $query->paginate($size, ['*'], 'page', $page);
-        } else {
-            $data = $query->get();
-        }
+
+        $data = $query->get();
+
         return $data;
     }
     public function getTicketsByEventId(Request $request)
     {
         try {
             $data = $this->TICKET(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? '',
                 $request->event_id ?? '',
                 $request->category_id ?? '',
-                false
             );
             return $this->successResponse($data);
         } catch (\Exception $e) {
@@ -261,13 +247,21 @@ class TicketController extends Controller
     }
     public function deleteTicket($id)
     {
+        DB::beginTransaction();
         try {
-            DB::table('tickets')->where('id', '=', $id)->delete();
-            // TODO- Delete From ORdered Tickets
+            // Hapus ordered_tickets dulu
+            DB::table('ordered_tickets')->where('ticket_id', $id)->delete();
+
+            // Baru hapus tickets
+            DB::table('tickets')->where('id', $id)->delete();
+
+            DB::commit(); // jangan lupa commit
             return $this->successResponse([]);
         } catch (\Exception $e) {
+            DB::rollBack(); // rollback kalau error
             return $this->errorResponse($e->getMessage());
         }
     }
+
     // End Of Section Ticket
 }
