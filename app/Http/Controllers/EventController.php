@@ -123,11 +123,15 @@ class EventController extends Controller
                     'e.description',
                     'e.start_date',
                     'e.location',
-                    'u.name as event_organizer'
+                    'u.name as event_organizer',
+                    'u.picture_profile_name'
                 )->where('e.slug', '=', $slug)->first();
             if ($data) {
                 if ($data->banner) {
                     $data->banner_url = url('storage/event_banners/' . $data->banner_name);
+                }
+                if ($data->picture_profile_name) {
+                    $data->picture_profile_url = url('storage/picture_profiles/' . $data->picture_profile_name);
                 }
                 return $this->successResponse($data);
             } else {

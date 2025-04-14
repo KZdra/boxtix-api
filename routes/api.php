@@ -2,12 +2,10 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TicketController;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use App\Mail\SendMail;
-use Tymon\JWTAuth\Payload;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +39,6 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::put('/{id}', [EventController::class, 'updateEvent']);
     Route::delete('/{id}', [EventController::class, 'deleteEvent']);
     Route::get('/{id}', [EventController::class, 'getEventById']);
-  
 });
 
 Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(function () {
@@ -60,27 +57,16 @@ Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::delete('/{id}', [TicketController::class, 'deleteTicket']);
 });
 //====================================================================================================================>
-// NO AUTH FOR LANDING PAGE
+// NO AUTH FOR BOXTIX HOME->DetailTicket->Payment
 
 // PaymentSections
 Route::post('pay', [PaymentController::class, 'reqTokenBayar']);
 Route::post('pay/callback', [PaymentController::class, 'handleAfterPayment']);
-//
+//KDOAKDokok
 Route::get('event/{slug}', [EventController::class, 'getEventBySlug']);
 Route::get('ticket/own', [TicketController::class, 'getTicketsByEventId']);
-
-Route::get('sss/{cust_id}',[PaymentController::class,'sendTicketToCustomer']);
-
-// Route::get('/send-eticket', function () {
-//     $filePath = 'exported-ticket/EVE-0002/ticket_EVE-0002.pdf';
-
-//     // dd($filePath);
-//     $fileName = 'ticket_EVE-0002.pdf';
-
-    // Mail::to('indrahardikap@gmail.com')->send(new SendMail('indra',$filePath,$fileName));
-
-//     return 'Email dengan e-ticket berhasil dikirim!';
-// });
-
+//ASAADEKOON
+Route::get('sss/{cust_id}', [PaymentController::class, 'sendTicketToCustomer']);
+Route::get('newest/event', [HomeController::class, 'getLatestEvent']);
 //=====================================================================================================================>
 // Scanner Api For VAlidation ticket 

@@ -38,15 +38,14 @@ class PaymentController extends Controller
                 ->update(['stock' => $ticket->stock - 1]);
             return true;
         } else {
+            DB::table('tickets')->where('id', $tix_id)->update(['status' => 'sold_out']);
             return false;
         }
     }
     public function SendTicketToCustomer($cust_id)
     {
 
-        $apiKey = env('WA_GATEWAY_APIKEY');
-        $whatsappNumber = env('WA_GATEWAY_NUMBER');
-        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_phone')->where('id', '=', $cust_id)->first();
+        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_phone', 'customer_email')->where('id', '=', $cust_id)->first();
         $orderedTicketData = DB::table('ordered_tickets')->select('id', 'ticket_id', 'ticket_number as ordered_number')->where('customer_id', '=', $cust_id)->first();
         $ticketData = DB::table('tickets as t')
             ->join('events as e', 't.event_id', '=', 'e.id')
@@ -70,9 +69,9 @@ class PaymentController extends Controller
         $pdfPath = $ticketFolder . "ticket_{$orderedTicketData->ordered_number}.pdf";
         Storage::disk('public')->put($pdfPath, $pdf->output());
         $filename = "ticket_{$orderedTicketData->ordered_number}.pdf";
-        // SEND TO WA SECTION        
-        $messages = "Halo Kak $custData->customer_first_name, Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya! :D -BoxMin";
-        Mail::to('indrahardikap@gmail.com')->send(new SendMail($custData->customer_first_name, $pdfPath, $filename));
+        // SEND TO Email  SECTION        
+        // $messages = "Halo Kak $custData->customer_first_name, Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya! :D -BoxMin";
+        Mail::to($custData->customer_email)->send(new SendMail($custData->customer_first_name, $pdfPath, $filename));
         return true;
     }
     public function generateTicketNumber($t_id)
@@ -108,7 +107,6 @@ class PaymentController extends Controller
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'email' => 'required|string',
-            'phone' => 'required|numeric'
         ]);
         try {
             DB::beginTransaction();
@@ -129,7 +127,6 @@ class PaymentController extends Controller
             $cust_id = DB::table('customers')->insertGetId([
                 'customer_first_name' => $request->first_name,
                 'customer_last_name' => $request->last_name,
-                'customer_phone' => $request->phone,
                 'customer_email' => $request->email,
                 'created_at' => Carbon::now()
 
@@ -190,13 +187,17 @@ class PaymentController extends Controller
             $order_id = $notif->order_id;
             DB::beginTransaction();
             try {
-                DB::table('log_transactions')->insert([
-                    'order_id' => $order_id,
-                    'status' =>  $transaction,
-                    'type' => $type,
-                    'payload' => json_encode($request->all()),
-                    'created_at' => Carbon::now(),
-                ]);
+                DB::table('log_transactions')->updateOrInsert(
+                    [
+                        'order_id' => $order_id,
+                    ],
+                    [
+                        'status' =>  $transaction,
+                        'type' => $type,
+                        'payload' => json_encode($request->all()),
+                        'created_at' => Carbon::now(),
+                    ]
+                );
                 switch ($transaction) {
                     case 'capture':
                         $required_id = DB::table('orders')->where('id', $order_id)->select('ticket_id', 'customer_id', 'id as order_id')->first();

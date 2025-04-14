@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('order_no')->unique();
             $table->decimal('total_price',15,2);
-            $table->enum('order_status',['paid','unpaid','expired','failed','canceled'])->default('unpaid');
+            $table->enum('order_status',['paid','unpaid','expired','failed','canceled','pending'])->default('unpaid');
             $table->timestamps();
         });
     }
