@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -45,7 +44,7 @@ class PaymentController extends Controller
     public function SendTicketToCustomer($cust_id)
     {
 
-        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_phone', 'customer_email')->where('id', '=', $cust_id)->first();
+        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_email')->where('id', '=', $cust_id)->first();
         $orderedTicketData = DB::table('ordered_tickets')->select('id', 'ticket_id', 'ticket_number as ordered_number')->where('customer_id', '=', $cust_id)->first();
         $ticketData = DB::table('tickets as t')
             ->join('events as e', 't.event_id', '=', 'e.id')
@@ -129,7 +128,6 @@ class PaymentController extends Controller
                 'customer_last_name' => $request->last_name,
                 'customer_email' => $request->email,
                 'created_at' => Carbon::now()
-
             ]);
 
             $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . mt_rand(1000, 9999);
