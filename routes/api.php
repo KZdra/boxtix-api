@@ -57,6 +57,13 @@ Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::put('/{id}', [TicketController::class, 'updateTicket']);
     Route::delete('/{id}', [TicketController::class, 'deleteTicket']);
 });
+Route::prefix('users')->middleware(['jwt.verify', 'api'])->group(function () {
+    Route::get('/', [AuthController::class, 'getUsers']);
+    Route::get('/roles', [AuthController::class, 'getRoles']);
+    Route::post('/', [AuthController::class, 'register']);
+    Route::put('/{id}', [AuthController::class, 'updateUser']);
+    Route::delete('/{id}', [AuthController::class, 'deleteUser']);
+});
 // Admin DashBoard
 Route::prefix('dasdata')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::get('/', [DashboardController::class, 'getStats']);
