@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-/* 
+/*
 /======================================================
 /  SEIYA SEKATA BERSAMA SAMA SEIYA SEKATA HADAPI DUNIA!
 /======================================================
@@ -35,7 +37,7 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::get('/', [EventController::class, 'getEvents']);
     Route::post('/', [EventController::class, 'createEvent']);
     Route::get('/own', [EventController::class, 'getEventsByEO']);
-    Route::put('/{id}', [EventController::class, 'updateEvent']);
+    Route::put('/{id}', [EventController::class, 'editEvent']);
     Route::delete('/{id}', [EventController::class, 'deleteEvent']);
     Route::get('/{id}', [EventController::class, 'getEventById']);
 });
@@ -43,7 +45,6 @@ Route::prefix('events')->middleware(['jwt.verify', 'api'])->group(function () {
 Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(function () {
     Route::get('/', [TicketController::class, 'getTicketCategories']);
     Route::post('/', [TicketController::class, 'addTicketCategories']);
-    Route::get('/own', [TicketController::class, 'getTicketCategoryByEvents']);
     Route::put('/{id}', [TicketController::class, 'editTicketCategory']);
     Route::delete('/{id}', [TicketController::class, 'deleteTicketCategory']);
     Route::get('/{ticket_category_id}', [TicketController::class, 'getTicketCategoryById']);
@@ -51,16 +52,34 @@ Route::prefix('ticket-categories')->middleware(['jwt.verify', 'api'])->group(fun
 
 
 Route::prefix('tickets')->middleware(['jwt.verify', 'api'])->group(function () {
-    Route::get('/',[TicketController::class,'getTicketsByEventId']);
-    Route::post('/',[TicketController::class,'createTicket']);
-    Route::put('/{id}',[TicketController::class,'updateTicket']);
-    Route::delete('/{id}',[TicketController::class,'deleteTicket']);
+    Route::get('/', [TicketController::class, 'getTicketsByEventId']);
+    Route::post('/', [TicketController::class, 'createTicket']);
+    Route::put('/{id}', [TicketController::class, 'updateTicket']);
+    Route::delete('/{id}', [TicketController::class, 'deleteTicket']);
 });
+Route::prefix('users')->middleware(['jwt.verify', 'api'])->group(function () {
+    Route::get('/', [AuthController::class, 'getUsers']);
+    Route::get('/roles', [AuthController::class, 'getRoles']);
+    Route::post('/', [AuthController::class, 'register']);
+    Route::put('/{id}', [AuthController::class, 'updateUser']);
+    Route::delete('/{id}', [AuthController::class, 'deleteUser']);
+});
+// Admin DashBoard
+Route::prefix('dasdata')->middleware(['jwt.verify', 'api'])->group(function () {
+    Route::get('/', [DashboardController::class, 'getStats']);
+});
+
 //====================================================================================================================>
+// NO AUTH FOR BOXTIX HOME->DetailTicket->Payment
 
 // PaymentSections
-Route::post('pay',[PaymentController::class,'reqTokenBayar']);
-Route::post('pay/callback',[PaymentController::class,'handleAfterPayment']);
-
+Route::post('pay', [PaymentController::class, 'reqTokenBayar']);
+Route::post('pay/callback', [PaymentController::class, 'handleAfterPayment']);
+//KDOAKDokok
+Route::get('event/{slug}', [EventController::class, 'getEventBySlug']);
+Route::get('ticket/own', [TicketController::class, 'getTicketsByEventId']);
+//ASAADEKOON
+Route::get('sss/{cust_id}', [PaymentController::class, 'sendTicketToCustomer']);
+Route::get('newest/event', [HomeController::class, 'getLatestEvent']);
 //=====================================================================================================================>
-// Scanner Api For VAlidation ticket 
+// Scanner Api For VAlidation ticket

@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Midtrans\Snap;
 use Midtrans\Config;
+use App\Mail\SendMail;
 use Midtrans\Notification;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
@@ -23,7 +24,7 @@ class PaymentController extends Controller
         Config::$isSanitized = config('services.midtrans.isSanitized');
         Config::$is3ds = config('services.midtrans.is3ds');
     }
-// Helper
+    // Helper
     public function decresaseStokTicket($tix_id)
     {
         // Ambil stok saat ini
@@ -36,15 +37,14 @@ class PaymentController extends Controller
                 ->update(['stock' => $ticket->stock - 1]);
             return true;
         } else {
+            DB::table('tickets')->where('id', $tix_id)->update(['status' => 'sold_out']);
             return false;
         }
     }
     public function SendTicketToCustomer($cust_id)
     {
 
-        $apiKey = env('WA_GATEWAY_APIKEY');
-        $whatsappNumber = env('WA_GATEWAY_NUMBER');
-        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_phone')->where('id', '=', $cust_id)->first();
+        $custData = DB::table('customers')->select('id', 'customer_first_name', 'customer_email')->where('id', '=', $cust_id)->first();
         $orderedTicketData = DB::table('ordered_tickets')->select('id', 'ticket_id', 'ticket_number as ordered_number')->where('customer_id', '=', $cust_id)->first();
         $ticketData = DB::table('tickets as t')
             ->join('events as e', 't.event_id', '=', 'e.id')
@@ -67,21 +67,11 @@ class PaymentController extends Controller
         $pdf = Pdf::loadView('tiket', compact('custData', 'orderedTicketData', 'ticketData'));
         $pdfPath = $ticketFolder . "ticket_{$orderedTicketData->ordered_number}.pdf";
         Storage::disk('public')->put($pdfPath, $pdf->output());
-        // SEND TO WA SECTION        
-        $messages = "Halo Kak, $custData->customer_first_name Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya..:D -BoxMin";
-
-        $response = Http::post('https://wa-ghbh.smkicb-teknika.sch.id/send-media', [
-            'api_key' => $apiKey,
-            'sender' => $whatsappNumber,
-            'number' => '62895359787002',
-            'media_type' => 'document',
-            'caption' => $messages,
-            'url' => 'https://06f5-103-81-223-98.ngrok-free.app/storage/exported-ticket/BEL-0002/ticket_BEL-0002.pdf',
-        ]);
-
-        $data = $response->successful() ? true : false;
-        // END OF SEND TO WA SECTION
-        return $data;
+        $filename = "ticket_{$orderedTicketData->ordered_number}.pdf";
+        // SEND TO Email  SECTION        
+        // $messages = "Halo Kak $custData->customer_first_name, Berikut Ini Adalah Ticket Elektronik Untuk Di Scan Nanti Di Venue! Jangan Hilang Ya! :D -BoxMin";
+        Mail::to($custData->customer_email)->send(new SendMail($custData->customer_first_name, $pdfPath, $filename));
+        return true;
     }
     public function generateTicketNumber($t_id)
     {
@@ -109,14 +99,13 @@ class PaymentController extends Controller
         $ticketCode = "{$prefix}" . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         return $ticketCode;
     }
-// END OF HELPER
+    // END OF HELPER
     public function reqTokenBayar(Request $request)
     {
         $request->validate([
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'email' => 'required|string',
-            'phone' => 'required|numeric'
         ]);
         try {
             DB::beginTransaction();
@@ -137,10 +126,8 @@ class PaymentController extends Controller
             $cust_id = DB::table('customers')->insertGetId([
                 'customer_first_name' => $request->first_name,
                 'customer_last_name' => $request->last_name,
-                'customer_phone' => $request->phone,
                 'customer_email' => $request->email,
                 'created_at' => Carbon::now()
-
             ]);
 
             $orderNumber = 'ORD-' . now()->format('Ymd') . '-' . mt_rand(1000, 9999);
@@ -198,13 +185,17 @@ class PaymentController extends Controller
             $order_id = $notif->order_id;
             DB::beginTransaction();
             try {
-                DB::table('log_transactions')->insert([
-                    'order_id' => $order_id,
-                    'status' =>  $transaction,
-                    'type' => $type,
-                    'payload' => json_encode($request->all()),
-                    'created_at' => Carbon::now(),
-                ]);
+                DB::table('log_transactions')->updateOrInsert(
+                    [
+                        'order_id' => $order_id,
+                    ],
+                    [
+                        'status' =>  $transaction,
+                        'type' => $type,
+                        'payload' => json_encode($request->all()),
+                        'created_at' => Carbon::now(),
+                    ]
+                );
                 switch ($transaction) {
                     case 'capture':
                         $required_id = DB::table('orders')->where('id', $order_id)->select('ticket_id', 'customer_id', 'id as order_id')->first();
@@ -221,6 +212,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
+                            $this->SendTicketToCustomer($required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;
@@ -240,6 +232,7 @@ class PaymentController extends Controller
                             'created_at' => Carbon::now(),
                         ]);
                         if ($ordtxID) {
+                            $this->SendTicketToCustomer($required_id->customer_id);
                             $this->decresaseStokTicket($required_id->ticket_id);
                         }
                         break;

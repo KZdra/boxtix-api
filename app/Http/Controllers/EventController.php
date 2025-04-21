@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\ApiResponse;
 use Carbon\Carbon;
+use App\Traits\ApiResponse;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
     use ApiResponse;
     // Crud Heula
-    public function EVENT($size = 10, $page = 1, $search = '', $eo_id = '')
+    public function EVENT($eo_id = '')
     {
         $query = DB::table('events as e')
             ->join('users as u', 'e.organizer_id', '=', 'u.id')
@@ -26,29 +27,22 @@ class EventController extends Controller
                 'e.description',
                 'e.start_date',
                 'e.location',
-                'e.created_at',
-                'e.updated_at',
+                'e.slug',
                 'u.name as event_organizer'
             );
         if (!empty($eo_id)) {
             $query->where('e.organizer_id', '=', $eo_id);
         }
-        if (!empty($search)) {
-            $query->where('e.title', 'LIKE', "%$search%");
-        }
 
-        $data = $query->orderBy('e.start_date', 'DESC')->paginate($size, ['*'], 'page', $page);
+
+        $data = $query->orderBy('e.start_date', 'DESC')->get();
         return $data;
     }
 
     public function getEvents(Request $request)
     {
         try {
-            $data = $this->EVENT(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? ''
-            );
+            $data = $this->EVENT();
             foreach ($data as $event) {
                 if ($event->banner) {
                     $event->banner_url = url('storage/event_banners/' . $event->banner_name);
@@ -64,11 +58,7 @@ class EventController extends Controller
     {
         try {
             $data = $this->EVENT(
-                $request->size ?? 10,
-                $request->page ?? 1,
-                $request->search ?? '',
                 Auth::id()
-
             );
             foreach ($data as $event) {
                 if ($event->banner) {
@@ -94,19 +84,49 @@ class EventController extends Controller
                     'e.description',
                     'e.start_date',
                     'e.location',
-                    'e.created_at',
-                    'e.updated_at',
+                    'e.slug',
                     'u.name as event_organizer'
                 )->where('e.id', '=', $id)->first();
-                if ($data) {
-                    if ($data->banner) {
-                        $data->banner_url = url('storage/event_banners/' . $data->banner_name);
-                    }
-                    return $this->successResponse($data);
-                } else{
-                    return $this->errorResponse('Not Found',404);
+            if ($data) {
+                if ($data->banner) {
+                    $data->banner_url = url('storage/event_banners/' . $data->banner_name);
                 }
-
+                return $this->successResponse($data);
+            } else {
+                return $this->errorResponse('Not Found', 404);
+            }
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+    public function getEventBySlug($slug)
+    {
+        try {
+            $data = DB::table('events as e')
+                ->join('users as u', 'e.organizer_id', '=', 'u.id')
+                ->select(
+                    'e.id',
+                    'e.organizer_id',
+                    'e.title',
+                    'e.banner',
+                    'e.banner_name',
+                    'e.description',
+                    'e.start_date',
+                    'e.location',
+                    'u.name as event_organizer',
+                    'u.profile_picture_name'
+                )->where('e.slug', '=', $slug)->first();
+            if ($data) {
+                if ($data->banner) {
+                    $data->banner_url = url('storage/event_banners/' . $data->banner_name);
+                }
+                if ($data->profile_picture_name) {
+                    $data->profile_picture_url = url('storage/profile_pictures/' . $data->profile_picture_name);
+                }
+                return $this->successResponse($data);
+            } else {
+                return $this->errorResponse('Not Found', 404);
+            }
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
@@ -138,8 +158,8 @@ class EventController extends Controller
                 'banner' => $banner,
                 'description' => $request->description,
                 'location' => $request->location,
-                // 'start_date' => $request->start_date, // Todo
-                'start_date' =>  Carbon::now(),
+                'start_date' => $request->start_date,
+                'slug' => Str::slug($request->title),
                 'created_at' => Carbon::now(),
             ]);
             return $this->successResponse([], 'Success', 201);
@@ -168,6 +188,7 @@ class EventController extends Controller
                 'description' => $request->description,
                 'location' => $request->location,
                 'start_date' => $request->start_date,
+                'slug' => Str::slug($request->title),
                 'updated_at' => Carbon::now(),
             ];
 
